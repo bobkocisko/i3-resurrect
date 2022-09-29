@@ -2,8 +2,10 @@ import json
 import re
 import shlex
 import subprocess
+# import psutil
 
 from . import config
+# from . import programs
 
 # The tree node attributes that we want to save.
 REQUIRED_ATTRIBUTES = [
@@ -19,12 +21,13 @@ REQUIRED_ATTRIBUTES = [
     'percent',
     'scratchpad_state',
     'sticky',
+    'title_format',
     'type',
     'workspace_layout',
 ]
 
 
-def process_node(original, swallow):
+def process_node(original, swallow, app_specific = {}):
     """
     Recursive function which traverses a layout tree and builds a new tree from
     it which can be restored using append_layout and only contains attributes
@@ -59,8 +62,40 @@ def process_node(original, swallow):
             swallow_criteria = window_swallow_mappings[window_class]
         for criterion in swallow_criteria:
             if criterion in original['window_properties']:
-                # Escape special characters in swallow criteria.
-                escaped = re.escape(original['window_properties'][criterion])
+                orig_prop = original['window_properties'][criterion]
+                escaped = None
+                if criterion == 'title':
+                    kak_match = re.fullmatch(r"(.+) (\d+):(\d+) (?:\[\+\])? \d+ sel(?:s)?(?: \(\d+\))? - (.+)@\[(.+)\] - Kakoune", orig_prop)
+                    if kak_match:
+                        # we can assume that this is being run by a terminal
+                        # so we need to get the working directory from the 
+                        # child process of the terminal
+                        # pid = programs.get_window_pid(original)
+                        # procinfo = psutil.Process(pid)
+                        # working_directory = procinfo.children()[0].cwd()
+                        
+                        file_path = kak_match.group(1)
+                        line = kak_match.group(2)
+                        column = kak_match.group(3)
+                        client_name = kak_match.group(4)
+                        session_name = kak_match.group(5)
+                        app_specific\
+                            .setdefault('kakoune_sessions', {})\
+                            .setdefault(session_name, {})\
+                            .setdefault('clients', {})\
+                            [client_name] = {
+                                # 'working_directory': working_directory,
+                                'path': file_path,
+                                'line': line,
+                                'column': column
+                            }
+                        escaped = re.escape(file_path) + " " + line + ":" + column + r"  \d+ sel(?:s)?(?: \(\d+\))? - " + client_name + r"@\[" + session_name + r"\] - Kakoune"
+                    else:
+                        # Escape special characters in swallow criteria.
+                        escaped = re.escape(orig_prop)
+                else:
+                    # Escape special characters in swallow criteria.
+                    escaped = re.escape(orig_prop)
                 # Regex formatting.
                 value = f'^{escaped}$'
                 processed['swallows'][0][criterion] = value
@@ -71,7 +106,7 @@ def process_node(original, swallow):
             processed[node_type] = []
             for child in original[node_type]:
                 # Step case.
-                processed[node_type].append(process_node(child, swallow))
+                processed[node_type].append(process_node(child, swallow, app_specific))
 
     return processed
 

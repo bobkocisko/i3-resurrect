@@ -7,8 +7,9 @@ from natsort import natsorted
 
 from . import config
 from . import layout
-from . import programs
+from . import apps
 from . import util
+from . import treeutils
 
 DEFAULT_DIRECTORY = config.get('directory', '~/.i3/i3-resurrect/')
 
@@ -63,9 +64,9 @@ def save_workspace(workspace, numeric, directory, profile, swallow, target):
         swallow_criteria = swallow.split(',')
         layout.save(workspace, numeric, directory, profile, swallow_criteria)
 
-    if target != 'layout_only':
-        # Save running programs to file.
-        programs.save(workspace, numeric, directory, profile)
+    # if target != 'layout_only':
+    #     # Save running programs to file.
+    #     programs.save(workspace, numeric, directory, profile)
 
 
 @main.command('restore')
@@ -119,8 +120,7 @@ def restore_workspace(workspace, numeric, directory, profile, target):
 
     if target != 'layout_only':
         # Restore programs.
-        saved_programs = programs.read(workspace, directory, profile)
-        programs.restore(workspace_name, saved_programs)
+        apps.restore(workspace, workspace_name, directory, profile)
 
 
 @main.command('ls')

@@ -18,6 +18,7 @@ setup(
         'i3ipc',
         'natsort',
         'psutil',
+        'pyinotify'
     ],
     entry_points={
         'console_scripts': ['i3-resurrect=i3_resurrect.main:main'],

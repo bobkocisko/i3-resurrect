@@ -1,9 +1,12 @@
+from asyncio.subprocess import PIPE
 import json
 import shlex
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
+import tempfile
+import os
 
 import i3ipc
 
@@ -21,17 +24,53 @@ def save(workspace, numeric, directory, profile, swallow_criteria):
         filename = f'{profile}_layout.json'
     layout_file = Path(directory) / filename
 
+    app_filename = f'workspace_{workspace_id}_apps.json'
+    app_file = Path(directory) / app_filename
+
     workspace_tree = treeutils.get_workspace_tree(workspace, numeric)
 
+    # Build new workspace tree suitable for restoring and write it to a
+    # file.
+    app_specific = {}
+    tree = build_layout(workspace_tree, swallow_criteria, app_specific)
+
+    # Find out the cwd of each session so we can restore that properly
+    #tmpfile = subprocess.check_output(['mktemp'], text=True).strip()
+    for session_name, s_entry in app_specific['kakoune_sessions'].items():
+        with tempfile.NamedTemporaryFile('w+') as tf:
+            # echo "echo %sh{pwd > tmpfile}" | kak -p 78177
+            input = r'echo %sh{pwd > ' + tf.name + r'}'
+            subprocess.run(['kak', '-p', session_name], 
+                input=input, check=True, text=True)
+            # Wait for the async process to write to the file
+            # (yes I know something like pyinotify would be better here
+            #  but I couldn't figure out how to install it... :=O)
+            while os.path.getsize(tf.name) == 0:
+                pass
+            server_cwd = tf.read().strip()
+            # print(server_cwd)
+            s_entry['server_working_directory'] = server_cwd
+            
+        # print(input, flush=True)
+        # p = subprocess.Popen(['kak', '-p', session_name], text=True, stdin=PIPE)
+        # p.stdin.write(input + "\n")
+        # p.stdin.close()
+        # # p.communicate(input=input)
+        # if p.wait() != 0:
+        #     util.eprint("Asking kak for the cwd failed")
+        #     sys.exit(1)
+        # with open('/home/bob-k/data') as f:
+        #     server_cwd = f.read()
+        #     print(server_cwd)
+        #     s_entry['server_working_directory'] = server_cwd
+
+
     with layout_file.open('w') as f:
-        # Build new workspace tree suitable for restoring and write it to a
-        # file.
-        f.write(
-            json.dumps(
-                build_layout(workspace_tree, swallow_criteria),
-                indent=2,
-            )
-        )
+        f.write(json.dumps(tree, indent=2))
+
+    # print(app_specific, flush=True)
+    with app_file.open('w') as f:
+        f.write(json.dumps(app_specific, indent=2))
 
 
 def read(workspace, directory, profile):
@@ -129,12 +168,12 @@ def restore(workspace_name, layout):
             xdo_map_window(window_id)
 
 
-def build_layout(tree, swallow):
+def build_layout(tree, swallow, app_specific):
     """
     Builds a restorable layout tree with basic Python data structures which are
     JSON serialisable.
     """
-    processed = treeutils.process_node(tree, swallow)
+    processed = treeutils.process_node(tree, swallow, app_specific)
     return processed
 
 
