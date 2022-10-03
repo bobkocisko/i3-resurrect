@@ -91,6 +91,14 @@ def process_node(original, swallow, app_specific = {}):
                             }
                         escaped = re.escape(file_path) + " " + line + ":" + column + r"  \d+ sel(?:s)?(?: \(\d+\))? - " + client_name + r"@\[" + session_name + r"\] - Kakoune"
                     else:
+                        kak_match = re.fullmatch(r"^(.+)@(.+):(.+)$", orig_prop)
+                        if kak_match:
+                            path = kak_match.group(3)
+                            app_specific\
+                                .setdefault('alacritty', []).append({
+                                    'path': path
+                                })
+
                         # Escape special characters in swallow criteria.
                         escaped = re.escape(orig_prop)
                 else:

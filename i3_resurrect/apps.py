@@ -8,6 +8,7 @@ from pathlib import Path
 import i3ipc
 import psutil
 import os
+import re
 
 from . import config
 from . import treeutils
@@ -58,11 +59,18 @@ def restore(workspace, workspace_name, directory, profile):
         # Now fire up each client connecting to the same session
         # in the same working directory
         for client_name, c_entry in s_entry['clients'].items():
-            path = c_entry['path']
+            path = re.sub(r'^~', os.environ['HOME'], c_entry['path']) # For some reason the ~ doesn't get expanded so we replace it here
             line = c_entry['line']
             column = c_entry['column']
             command = ['alacritty', '-e', 'sh', '-c', fr'kak -c {session_name} "{path}" +{line}:{column} -e "rename-client {client_name}"']
             # print(command, working_directory, flush=True)
             os.spawnvp(os.P_NOWAIT, command[0], command)
+
+    for a_entry in saved_apps['alacritty']:
+        working_directory = re.sub(r'^~', os.environ['HOME'], a_entry['path'])
+        command = ['alacritty']
+        os.chdir(working_directory)
+        os.spawnvp(os.P_NOWAIT, command[0], command)
+
 
 
