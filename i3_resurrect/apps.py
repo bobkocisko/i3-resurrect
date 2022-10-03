@@ -50,7 +50,7 @@ def restore(workspace, workspace_name, directory, profile):
     for session_name, s_entry in saved_apps['kakoune_sessions'].items():
         # Start a kakoune background server for this session
         # in the server working directory
-        server_working_directory = s_entry['server_working_directory']
+        server_working_directory = os.path.expanduser(s_entry['server_working_directory'])
         server_command = ['kak', '-s', session_name, '-d']
         # print(server_command, server_working_directory, flush=True)
         os.chdir(server_working_directory)
@@ -59,7 +59,7 @@ def restore(workspace, workspace_name, directory, profile):
         # Now fire up each client connecting to the same session
         # in the same working directory
         for client_name, c_entry in s_entry['clients'].items():
-            path = re.sub(r'^~', os.environ['HOME'], c_entry['path']) # For some reason the ~ doesn't get expanded so we replace it here
+            path = os.path.expanduser(c_entry['path'])
             line = c_entry['line']
             column = c_entry['column']
             command = ['alacritty', '-e', 'sh', '-c', fr'kak -c {session_name} "{path}" +{line}:{column} -e "rename-client {client_name}"']
@@ -67,7 +67,7 @@ def restore(workspace, workspace_name, directory, profile):
             os.spawnvp(os.P_NOWAIT, command[0], command)
 
     for a_entry in saved_apps['alacritty']:
-        working_directory = re.sub(r'^~', os.environ['HOME'], a_entry['path'])
+        working_directory = os.path.expanduser(a_entry['path'])
         command = ['alacritty']
         os.chdir(working_directory)
         os.spawnvp(os.P_NOWAIT, command[0], command)
