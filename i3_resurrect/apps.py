@@ -47,7 +47,7 @@ def restore(workspace, workspace_name, directory, profile):
     saved_apps = read(workspace, directory, profile)
 
     i3 = i3ipc.Connection()
-    for session_name, s_entry in saved_apps['kakoune_sessions'].items():
+    for session_name, s_entry in saved_apps.setdefault('kakoune_sessions', {}).items():
         # Start a kakoune background server for this session
         # in the server working directory
         server_working_directory = os.path.expanduser(s_entry['server_working_directory'])
@@ -66,7 +66,7 @@ def restore(workspace, workspace_name, directory, profile):
             # print(command, working_directory, flush=True)
             os.spawnvp(os.P_NOWAIT, command[0], command)
 
-    for a_entry in saved_apps['alacritty']:
+    for a_entry in saved_apps.setdefault('alacritty', []):
         working_directory = os.path.expanduser(a_entry['path'])
         command = ['alacritty']
         os.chdir(working_directory)

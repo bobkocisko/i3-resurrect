@@ -36,7 +36,7 @@ def save(workspace, numeric, directory, profile, swallow_criteria):
 
     # Find out the cwd of each session so we can restore that properly
     #tmpfile = subprocess.check_output(['mktemp'], text=True).strip()
-    for session_name, s_entry in app_specific['kakoune_sessions'].items():
+    for session_name, s_entry in app_specific.setdefault('kakoune_sessions', {}).items():
         with tempfile.NamedTemporaryFile('w+') as tf:
             # echo "echo %sh{pwd > tmpfile}" | kak -p 78177
             input = r'echo %sh{pwd > ' + tf.name + r'}'
