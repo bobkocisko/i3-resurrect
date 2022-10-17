@@ -9,6 +9,7 @@ import i3ipc
 import psutil
 import os
 import re
+import time
 
 from . import config
 from . import treeutils
@@ -47,14 +48,26 @@ def restore(workspace, workspace_name, directory, profile):
     saved_apps = read(workspace, directory, profile)
 
     i3 = i3ipc.Connection()
+
+    # First, clear any dead sessions
+    command = ['kak', '-clear']
+    os.spawnvp(os.P_NOWAIT, command[0], command)
+
+    # For some reason it seems we need to start the servers before adding clients
+    # and (or?) add a small wait in between to avoid a race condition
     for session_name, s_entry in saved_apps.setdefault('kakoune_sessions', {}).items():
         # Start a kakoune background server for this session
         # in the server working directory
         server_working_directory = os.path.expanduser(s_entry['server_working_directory'])
         server_command = ['kak', '-s', session_name, '-d']
-        # print(server_command, server_working_directory, flush=True)
         os.chdir(server_working_directory)
         os.spawnvp(os.P_NOWAIT, server_command[0], server_command)
+        time.sleep(0.1)
+
+
+    for session_name, s_entry in saved_apps.setdefault('kakoune_sessions', {}).items():
+        server_working_directory = os.path.expanduser(s_entry['server_working_directory'])
+        os.chdir(server_working_directory)
 
         # Now fire up each client connecting to the same session
         # in the same working directory
