@@ -47,15 +47,18 @@ def restore(workspace, workspace_name, directory, profile):
     """
     saved_apps = read(workspace, directory, profile)
 
-    # i3 = i3ipc.Connection()
+    # Switch to a different workspace for loading all the apps so that they
+    # don't get squished while loading on top of the pre-loaded layout
+    i3 = i3ipc.Connection()
+    i3.command(f'workspace "_load_{workspace_name}"')
 
-    # # We can assume that every workspace has its own browser profile that should
-    # # be restored using the name of the workspace
-    # subprocess.Popen([os.path.expanduser('~/.local/bin/qutebrowser-profile'),
-    #   '--load', workspace_name])
-    # # We give it some time to restore so that its windows are hopefully open by
-    # # the time we start restoring kakoune.  That should help getting things to
-    # # restore in the relatively right places, hopefully!
+    # We can assume that every workspace has its own browser profile that should
+    # be restored using the name of the workspace
+    subprocess.Popen([os.path.expanduser('~/.local/bin/qutebrowser-profile'),
+      '--load', workspace_name])
+    # We give it some time to restore so that its windows are hopefully open by
+    # the time we start restoring kakoune.  That should help getting things to
+    # restore in the relatively right places, hopefully!
     # time.sleep(2.0)
 
     # Here are the details about where alacritty sockets are created...we're
