@@ -104,6 +104,9 @@ def restore(workspace, workspace_name, directory, profile):
             first_terminal = run_terminal(first_terminal, socket_path, \
               ['--working-directory', server_working_directory, '-e', 'sh', '-c', \
                fr'kak -c {session_name} "{path}" +{line}:{column} -e "rename-client {client_name}"'])
+            # I've had issues with the machine just grinding to a halt if too many
+            # are open back-to-back.  Let's try to fix that by delaying a little:
+            time.sleep(0.5)
 
     for a_entry in saved_apps.setdefault('alacritty', []):
         working_directory = os.path.expanduser(a_entry['path'])
